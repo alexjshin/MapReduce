@@ -6,8 +6,38 @@ package mr
 // remember to capitalize all names.
 //
 
-import "os"
-import "strconv"
+import (
+	"os"
+	"strconv"
+	"time"
+)
+
+type TaskStatus int
+
+const (
+	IDLE TaskStatus = iota
+	IN_PROGRESS
+	COMPLETED
+)
+
+type Task struct {
+	Status 		TaskStatus
+	WorkerId 	string
+	StartedAt 	time.Time
+}
+
+type MapTask struct {
+	FileName 	string
+	NReduce 	int	// needs nReduce input to determine number of interdmediate files to create
+	Task
+}
+
+type ReduceTask struct {
+	// review this struct and understand
+	Region 		int
+	Locations 	[]string
+	Task
+}
 
 //
 // example to show how to declare the arguments
