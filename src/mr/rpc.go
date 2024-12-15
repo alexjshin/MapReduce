@@ -39,20 +39,27 @@ type ReduceTask struct {
 	Task
 }
 
-//
-// example to show how to declare the arguments
-// and reply for an RPC.
-//
-
-type ExampleArgs struct {
-	X int
+type TaskType int {
+	EXIT TaskType = iota
+	WAIT
+	MAP
+	REDUCE
 }
 
-type ExampleReply struct {
-	Y int
+/*
+RPC Definitions
+*/
+
+type TaskResponse struct {
+	Type 		TaskType
+	MapTask 	MapTask
+	ReduceTask 	ReduceTask
 }
 
-// Add your RPC definitions here.
+type RequestTaskReply struct {
+	Response TaskResponse
+	NReduce  int
+}
 
 
 // Cook up a unique-ish UNIX-domain socket name

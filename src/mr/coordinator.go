@@ -13,14 +13,16 @@ import (
 
 type Coordinator struct {
 	// Your definitions here.
-	MapTasks []MapTask
-	ReduceTasks []ReduceTask
+	files 					[]string
+	nReduce 				int
 
+	MapTasks 				[]MapTask
+	ReduceTasks 			[]ReduceTask
 
-	MapTasksRemaining int
-	ReduceTasksRemaining int
+	MapTasksRemaining 		int
+	ReduceTasksRemaining 	int
 
-	mu sync.Mutex
+	mu 						sync.Mutex
 }
 
 /*
@@ -84,11 +86,13 @@ func (c *Coordinator) Done() bool {
 //
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
+	c.files = files
+	c.nReduce = nReduce
 	c.MapTasks = make([]MapTask, len(files))
-	c.MapTasksRemaining = len(files)
 	c.ReduceTasks = make([]ReduceTask, nReduce)
+	c.MapTasksRemaining = len(files)
 	c.ReduceTasksRemaining = nReduce
-	c.mu = sync.Mutex{}
+	// c.mu = sync.Mutex{}
 
 	// Initialize map tasks
 	for i, file := range files {
@@ -100,12 +104,15 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	}
 
 	// Initialize reduce tasks
-	for i := 0; i < nReduce; i++ {
-		c.ReduceTasks[i] = ReduceTask{
-			Region: nReduce + i,
-			Task: Task{Status: IDLE},
-		}
+	for i:= range c.ReduceTasks {
+		
 	}
+	// for i := 0; i < nReduce; i++ {
+	// 	c.ReduceTasks[i] = ReduceTask{
+	// 		Region: nReduce + i,
+	// 		Task: Task{Status: IDLE},
+	// 	}
+	// }
 
 	fmt.Printf("Coordinator initialized with %v Map Tasks\n", len(files))
 	fmt.Printf("Coordinator initialized with %v Reduce Tasks\n", nReduce)
