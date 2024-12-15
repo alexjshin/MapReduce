@@ -39,12 +39,14 @@ type ReduceTask struct {
 	Task
 }
 
-type TaskType int {
+type TaskType int 
+
+const (
 	EXIT TaskType = iota
 	WAIT
 	MAP
 	REDUCE
-}
+)
 
 /*
 RPC Definitions
