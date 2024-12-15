@@ -1,17 +1,26 @@
 package mr
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/rpc"
 	"os"
+	"sync"
 )
 
 
 type Coordinator struct {
 	// Your definitions here.
+	MapTasks []MapTask
+	ReduceTasks []ReduceTask
 
+
+	MapTasksRemaining int
+	ReduceTasksRemaining int
+
+	mu sync.Mutex
 }
 
 /*
@@ -60,10 +69,9 @@ func (c *Coordinator) server() {
 //
 func (c *Coordinator) Done() bool {
 	ret := false
-
-	// Your code here.
-
-
+	if c.MapTasksRemaining == 0 && c.ReduceTasksRemaining == 0 {
+		ret = true
+	} 
 	return ret
 }
 
@@ -76,10 +84,31 @@ func (c *Coordinator) Done() bool {
 //
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
+	c.MapTasks = make([]MapTask, len(files))
+	c.MapTasksRemaining = len(files)
+	c.ReduceTasks = make([]ReduceTask, nReduce)
+	c.ReduceTasksRemaining = nReduce
+	c.mu = sync.Mutex{}
 
-	// Your code here.
+	// Initialize map tasks
+	for i, file := range files {
+		c.MapTasks[i] = MapTask{
+			FileName: file,
+			NReduce: nReduce,
+			Task: Task{Status: IDLE},
+		}
+	}
 
+	// Initialize reduce tasks
+	for i := 0; i < nReduce; i++ {
+		c.ReduceTasks[i] = ReduceTask{
+			Region: nReduce + i,
+			Task: Task{Status: IDLE},
+		}
+	}
 
+	fmt.Printf("Coordinator initialized with %v Map Tasks\n", len(files))
+	fmt.Printf("Coordinator initialized with %v Reduce Tasks\n", nReduce)
 	c.server()
 	return &c
 }
