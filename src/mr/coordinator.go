@@ -70,11 +70,9 @@ func (c *Coordinator) server() {
 // once all map and reduce tasks are done
 //
 func (c *Coordinator) Done() bool {
-	ret := false
-	if c.MapTasksRemaining == 0 && c.ReduceTasksRemaining == 0 {
-		ret = true
-	} 
-	return ret
+	c.mu.Lock()
+    defer c.mu.Unlock()
+    return c.MapTasksRemaining == 0 && c.ReduceTasksRemaining == 0
 }
 
 //
@@ -105,14 +103,17 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 
 	// Initialize reduce tasks
 	for i:= range c.ReduceTasks {
-		
+		locations := make([]string , len(files))
+		for j := range files {
+			locations[j] = fmt.Sprintf("mr-%d-%d", j, i)
+		}
+
+		c.ReduceTasks[i] = ReduceTask{
+			Region: i,
+			Locations: locations,
+			Task: Task{Status: IDLE},
+		}
 	}
-	// for i := 0; i < nReduce; i++ {
-	// 	c.ReduceTasks[i] = ReduceTask{
-	// 		Region: nReduce + i,
-	// 		Task: Task{Status: IDLE},
-	// 	}
-	// }
 
 	fmt.Printf("Coordinator initialized with %v Map Tasks\n", len(files))
 	fmt.Printf("Coordinator initialized with %v Reduce Tasks\n", nReduce)
