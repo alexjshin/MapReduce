@@ -24,6 +24,7 @@ type Task struct {
 	Status 		TaskStatus
 	WorkerId 	string
 	StartedAt 	time.Time
+	Index		int
 }
 
 type MapTask struct {
@@ -45,13 +46,14 @@ const (
 	WAIT TaskType = iota
 	MAP
 	REDUCE
+	EXIT
 )
 
 /*
 RPC Definitions
 */
 
-// RPC structures for requesting tasks
+// RPC Request/Response structures
 type TaskRequestArgs struct {
     WorkerId string
 }
@@ -63,15 +65,16 @@ type TaskRequestReply struct {
     NReduce    int
 }
 
-// RPC structures for completing tasks
 type TaskCompletionArgs struct {
     TaskType   TaskType
     MapTask    *MapTask
     ReduceTask *ReduceTask
+    WorkerId   string    // Added for better task tracking
 }
 
 type TaskCompletionReply struct {
-    // Empty for now, could add acknowledgment info if needed
+    Success bool   // Added for acknowledgment
+    Error   string // Added for error reporting
 }
 
 

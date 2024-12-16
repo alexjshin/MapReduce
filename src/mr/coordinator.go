@@ -11,19 +11,21 @@ import (
 	"time"
 )
 
+const (
+    TASK_TIMEOUT = 10 * time.Second
+)
 
 type Coordinator struct {
-	// Your definitions here.
-	files 					[]string
-	nReduce 				int
+    files    []string
+    nReduce  int
 
-	mapTasks 				[]MapTask
-	reduceTasks 			[]ReduceTask
+    mapTasks    []MapTask
+    reduceTasks []ReduceTask
 
-	mapTasksRemaining 		int
-	reduceTasksRemaining 	int
+    mapTasksRemaining    int
+    reduceTasksRemaining int
 
-	mu 						sync.Mutex
+    mu sync.Mutex
 }
 
 /*
@@ -43,95 +45,134 @@ and reassign the task to another worker.
 // This lets the coordinator update its count of remaining tasks and task status
 //
 func (c *Coordinator) NotifyComplete(args *TaskCompletionArgs, reply *TaskCompletionReply) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	switch args.TaskType {
-	case MAP:
-		if args.MapTask.Status == IN_PROGRESS {
-			args.MapTask.Status = COMPLETED
-			c.mapTasksRemaining--
-		}	
-	case REDUCE:
-		if args.ReduceTask.Status == IN_PROGRESS {
-			args.ReduceTask.Status = COMPLETED
-			c.reduceTasksRemaining--
-		}
-	}
-	return nil
+    c.mu.Lock()
+    defer c.mu.Unlock()
+
+    reply.Success = true
+
+    switch args.TaskType {
+    case MAP:
+        if args.MapTask == nil {
+            reply.Success = false
+            reply.Error = "map task is nil"
+            return nil
+        }
+        
+        // Verify this is the assigned worker
+        if args.MapTask.WorkerId != args.WorkerId {
+            reply.Success = false
+            reply.Error = "wrong worker id"
+            return nil
+        }
+
+        // Use Index to find the correct task
+        if args.MapTask.Task.Index >= 0 && args.MapTask.Task.Index < len(c.mapTasks) {
+            if c.mapTasks[args.MapTask.Task.Index].Status == IN_PROGRESS {
+                c.mapTasks[args.MapTask.Task.Index].Status = COMPLETED
+                c.mapTasksRemaining--
+            }
+        }
+
+    case REDUCE:
+        if args.ReduceTask == nil {
+            reply.Success = false
+            reply.Error = "reduce task is nil"
+            return nil
+        }
+
+        // Verify this is the assigned worker
+        if args.ReduceTask.WorkerId != args.WorkerId {
+            reply.Success = false
+            reply.Error = "wrong worker id"
+            return nil
+        }
+
+        // Use Index to find the correct task
+        if args.ReduceTask.Task.Index >= 0 && args.ReduceTask.Task.Index < len(c.reduceTasks) {
+            if c.reduceTasks[args.ReduceTask.Task.Index].Status == IN_PROGRESS {
+                c.reduceTasks[args.ReduceTask.Task.Index].Status = COMPLETED
+                c.reduceTasksRemaining--
+            }
+        }
+    }
+
+    return nil
 }
 
 func (c *Coordinator) RequestTask(args *TaskRequestArgs, reply *TaskRequestReply) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+    c.mu.Lock()
+    defer c.mu.Unlock()
 
-	// First check if all map tasks are done
-	if c.mapTasksRemaining > 0 {
-		// Check for timed-out tasks and reassign
-		for i := range c.mapTasks {
-			if c.mapTasks[i].Status == IN_PROGRESS && time.Since(c.mapTasks[i].StartedAt) > 10*time.Second {
-				c.mapTasks[i].Status = IDLE
-				c.mapTasks[i].WorkerId = args.WorkerId
-				c.mapTasks[i].StartedAt = time.Now()
+    // First handle map tasks
+    if c.mapTasksRemaining > 0 {
+        if task := c.findAvailableMapTask(args.WorkerId); task != nil {
+            reply.TaskType = MAP
+            reply.MapTask = task
+            reply.NReduce = c.nReduce
+            return nil
+        }
+        reply.TaskType = WAIT
+        return nil
+    }
 
-				reply.TaskType = MAP
-				reply.MapTask = &c.mapTasks[i]
-				reply.NReduce = c.nReduce
-				return nil
-			}	
-		}
+    // Then handle reduce tasks
+    if c.reduceTasksRemaining > 0 {
+        if task := c.findAvailableReduceTask(args.WorkerId); task != nil {
+            reply.TaskType = REDUCE
+            reply.ReduceTask = task
+            return nil
+        }
+        reply.TaskType = WAIT
+        return nil
+    }
 
-		// Assign available IDLE map tasks
-		for i := range c.mapTasks {
-			if c.mapTasks[i].Status == IDLE {
-				c.mapTasks[i].Status = IN_PROGRESS
-				c.mapTasks[i].WorkerId = args.WorkerId
-				c.mapTasks[i].StartedAt = time.Now()
+    // All tasks completed
+    reply.TaskType = EXIT
+    return nil
+}
 
-				reply.TaskType = MAP
-				reply.MapTask = &c.mapTasks[i]
-				reply.NReduce = c.nReduce
-				return nil
-			}
-		}
+func (c *Coordinator) findAvailableMapTask(workerId string) *MapTask {
+    // First check for timed out tasks
+    for i := range c.mapTasks {
+        if c.mapTasks[i].Status == IN_PROGRESS && 
+           time.Since(c.mapTasks[i].StartedAt) > TASK_TIMEOUT {
+            c.mapTasks[i].Status = IDLE
+        }
+    }
 
-		reply.TaskType = WAIT
-		return nil
-	}
+    // Then find an IDLE task
+    for i := range c.mapTasks {
+        if c.mapTasks[i].Status == IDLE {
+            c.mapTasks[i].Status = IN_PROGRESS
+            c.mapTasks[i].WorkerId = workerId
+            c.mapTasks[i].StartedAt = time.Now()
+            return &c.mapTasks[i]
+        }
+    }
 
-	// Check if all reduce tasks are done
-	if c.reduceTasksRemaining > 0 {
-		// Check for timed-out tasks and reassign
-		for i := range c.reduceTasks {
-			if c.reduceTasks[i].Status == IN_PROGRESS && time.Since(c.reduceTasks[i].StartedAt) > 10*time.Second {
-				c.reduceTasks[i].Status = IDLE
-				c.reduceTasks[i].WorkerId = args.WorkerId
-				c.reduceTasks[i].StartedAt = time.Now()
+    return nil
+}
 
-				reply.TaskType = REDUCE
-				reply.ReduceTask = &c.reduceTasks[i]
-				return nil
-			}
-		}
+func (c *Coordinator) findAvailableReduceTask(workerId string) *ReduceTask {
+    // First check for timed out tasks
+    for i := range c.reduceTasks {
+        if c.reduceTasks[i].Status == IN_PROGRESS && 
+           time.Since(c.reduceTasks[i].StartedAt) > TASK_TIMEOUT {
+            c.reduceTasks[i].Status = IDLE
+        }
+    }
 
-		// Assign available IDLE reduce tasks
-		for i := range c.reduceTasks {
-			if c.reduceTasks[i].Status == IDLE {
-				c.reduceTasks[i].Status = IN_PROGRESS
-				c.reduceTasks[i].WorkerId = args.WorkerId
-				c.reduceTasks[i].StartedAt = time.Now()
+    // Then find an IDLE task
+    for i := range c.reduceTasks {
+        if c.reduceTasks[i].Status == IDLE {
+            c.reduceTasks[i].Status = IN_PROGRESS
+            c.reduceTasks[i].WorkerId = workerId
+            c.reduceTasks[i].StartedAt = time.Now()
+            return &c.reduceTasks[i]
+        }
+    }
 
-				reply.TaskType = REDUCE
-				reply.ReduceTask = &c.reduceTasks[i]
-				return nil
-			}
-		}
-
-		reply.TaskType = WAIT
-		return nil
-	}
-
-	// All tasks are done
-	return fmt.Errorf("all tasks completed")
+    return nil
 }
 
 
@@ -180,27 +221,33 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	// c.mu = sync.Mutex{}
 
 	// Initialize map tasks
-	for i, file := range files {
-		c.mapTasks[i] = MapTask{
-			FileName: file,
-			NReduce: nReduce,
-			Task: Task{Status: IDLE},
-		}
-	}
+    for i, file := range files {
+        c.mapTasks[i] = MapTask{
+            FileName: file,
+            NReduce:  nReduce,
+            Task: Task{           // Properly initialize Task struct with Index
+                Status: IDLE,
+                Index:  i,        // Set Index during initialization
+            },
+        }
+    }
 
-	// Initialize reduce tasks
-	for i:= range c.reduceTasks {
-		locations := make([]string , len(files))
-		for j := range files {
-			locations[j] = fmt.Sprintf("mr-%d-%d", j, i)
-		}
+    // Initialize reduce tasks
+    for i := 0; i < nReduce; i++ {
+        locations := make([]string, len(files))
+        for j := range files {
+            locations[j] = fmt.Sprintf("mr-%d-%d", j, i)
+        }
 
-		c.reduceTasks[i] = ReduceTask{
-			Region: i,
-			Locations: locations,
-			Task: Task{Status: IDLE},
-		}
-	}
+        c.reduceTasks[i] = ReduceTask{
+            Region:    i,
+            Locations: locations,
+            Task: Task{           // Properly initialize Task struct with Index
+                Status: IDLE,
+                Index:  i,        // Set Index during initialization
+            },
+        }
+    }
 
 	fmt.Printf("Coordinator initialized with %v Map Tasks\n", len(files))
 	fmt.Printf("Coordinator initialized with %v Reduce Tasks\n", nReduce)
