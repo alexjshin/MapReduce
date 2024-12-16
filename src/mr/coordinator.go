@@ -8,6 +8,7 @@ import (
 	"net/rpc"
 	"os"
 	"sync"
+	"time"
 )
 
 
@@ -16,11 +17,11 @@ type Coordinator struct {
 	files 					[]string
 	nReduce 				int
 
-	MapTasks 				[]MapTask
-	ReduceTasks 			[]ReduceTask
+	mapTasks 				[]MapTask
+	reduceTasks 			[]ReduceTask
 
-	MapTasksRemaining 		int
-	ReduceTasksRemaining 	int
+	mapTasksRemaining 		int
+	reduceTasksRemaining 	int
 
 	mu 						sync.Mutex
 }
@@ -35,16 +36,102 @@ If a task takes more than 10 seconds to finish, we’ll assume the worker is hav
 and reassign the task to another worker.
 */
 
-// Your code here -- RPC handlers for the worker to call.
+// RPC Handlers
 
 //
-// an example RPC handler.
+// Workers call NotifyComplete to tell the coordinator that they've finished a task.
+// This lets the coordinator update its count of remaining tasks and task status
 //
-// the RPC argument and reply types are defined in rpc.go.
-//
-func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
-	reply.Y = args.X + 1
+func (c *Coordinator) NotifyComplete(args *TaskCompletionArgs, reply *TaskCompletionReply) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	switch args.TaskType {
+	case MAP:
+		if args.MapTask.Status == IN_PROGRESS {
+			args.MapTask.Status = COMPLETED
+			c.mapTasksRemaining--
+		}	
+	case REDUCE:
+		if args.ReduceTask.Status == IN_PROGRESS {
+			args.ReduceTask.Status = COMPLETED
+			c.reduceTasksRemaining--
+		}
+	}
 	return nil
+}
+
+func (c *Coordinator) RequestTask(args *TaskRequestArgs, reply *TaskRequestReply) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// First check if all map tasks are done
+	if c.mapTasksRemaining > 0 {
+		// Check for timed-out tasks and reassign
+		for i := range c.mapTasks {
+			if c.mapTasks[i].Status == IN_PROGRESS && time.Since(c.mapTasks[i].StartedAt) > 10*time.Second {
+				c.mapTasks[i].Status = IDLE
+				c.mapTasks[i].WorkerId = args.WorkerId
+				c.mapTasks[i].StartedAt = time.Now()
+
+				reply.TaskType = MAP
+				reply.MapTask = &c.mapTasks[i]
+				reply.NReduce = c.nReduce
+				return nil
+			}	
+		}
+
+		// Assign available IDLE map tasks
+		for i := range c.mapTasks {
+			if c.mapTasks[i].Status == IDLE {
+				c.mapTasks[i].Status = IN_PROGRESS
+				c.mapTasks[i].WorkerId = args.WorkerId
+				c.mapTasks[i].StartedAt = time.Now()
+
+				reply.TaskType = MAP
+				reply.MapTask = &c.mapTasks[i]
+				reply.NReduce = c.nReduce
+				return nil
+			}
+		}
+
+		reply.TaskType = WAIT
+		return nil
+	}
+
+	// Check if all reduce tasks are done
+	if c.reduceTasksRemaining > 0 {
+		// Check for timed-out tasks and reassign
+		for i := range c.reduceTasks {
+			if c.reduceTasks[i].Status == IN_PROGRESS && time.Since(c.reduceTasks[i].StartedAt) > 10*time.Second {
+				c.reduceTasks[i].Status = IDLE
+				c.reduceTasks[i].WorkerId = args.WorkerId
+				c.reduceTasks[i].StartedAt = time.Now()
+
+				reply.TaskType = REDUCE
+				reply.ReduceTask = &c.reduceTasks[i]
+				return nil
+			}
+		}
+
+		// Assign available IDLE reduce tasks
+		for i := range c.reduceTasks {
+			if c.reduceTasks[i].Status == IDLE {
+				c.reduceTasks[i].Status = IN_PROGRESS
+				c.reduceTasks[i].WorkerId = args.WorkerId
+				c.reduceTasks[i].StartedAt = time.Now()
+
+				reply.TaskType = REDUCE
+				reply.ReduceTask = &c.reduceTasks[i]
+				return nil
+			}
+		}
+
+		reply.TaskType = WAIT
+		return nil
+	}
+
+	// All tasks are done
+	return fmt.Errorf("all tasks completed")
 }
 
 
@@ -72,7 +159,7 @@ func (c *Coordinator) server() {
 func (c *Coordinator) Done() bool {
 	c.mu.Lock()
     defer c.mu.Unlock()
-    return c.MapTasksRemaining == 0 && c.ReduceTasksRemaining == 0
+    return c.mapTasksRemaining == 0 && c.reduceTasksRemaining == 0
 }
 
 //
@@ -86,15 +173,15 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
 	c.files = files
 	c.nReduce = nReduce
-	c.MapTasks = make([]MapTask, len(files))
-	c.ReduceTasks = make([]ReduceTask, nReduce)
-	c.MapTasksRemaining = len(files)
-	c.ReduceTasksRemaining = nReduce
+	c.mapTasks = make([]MapTask, len(files))
+	c.reduceTasks = make([]ReduceTask, nReduce)
+	c.mapTasksRemaining = len(files)
+	c.reduceTasksRemaining = nReduce
 	// c.mu = sync.Mutex{}
 
 	// Initialize map tasks
 	for i, file := range files {
-		c.MapTasks[i] = MapTask{
+		c.mapTasks[i] = MapTask{
 			FileName: file,
 			NReduce: nReduce,
 			Task: Task{Status: IDLE},
@@ -102,13 +189,13 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	}
 
 	// Initialize reduce tasks
-	for i:= range c.ReduceTasks {
+	for i:= range c.reduceTasks {
 		locations := make([]string , len(files))
 		for j := range files {
 			locations[j] = fmt.Sprintf("mr-%d-%d", j, i)
 		}
 
-		c.ReduceTasks[i] = ReduceTask{
+		c.reduceTasks[i] = ReduceTask{
 			Region: i,
 			Locations: locations,
 			Task: Task{Status: IDLE},

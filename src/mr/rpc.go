@@ -42,8 +42,7 @@ type ReduceTask struct {
 type TaskType int 
 
 const (
-	EXIT TaskType = iota
-	WAIT
+	WAIT TaskType = iota
 	MAP
 	REDUCE
 )
@@ -52,15 +51,27 @@ const (
 RPC Definitions
 */
 
-type TaskResponse struct {
-	Type 		TaskType
-	MapTask 	MapTask
-	ReduceTask 	ReduceTask
+// RPC structures for requesting tasks
+type TaskRequestArgs struct {
+    WorkerId string
 }
 
-type RequestTaskReply struct {
-	Response TaskResponse
-	NReduce  int
+type TaskRequestReply struct {
+    TaskType   TaskType
+    MapTask    *MapTask
+    ReduceTask *ReduceTask
+    NReduce    int
+}
+
+// RPC structures for completing tasks
+type TaskCompletionArgs struct {
+    TaskType   TaskType
+    MapTask    *MapTask
+    ReduceTask *ReduceTask
+}
+
+type TaskCompletionReply struct {
+    // Empty for now, could add acknowledgment info if needed
 }
 
 
