@@ -73,7 +73,7 @@ func (w *worker) requestTask() (*TaskRequestReply, error) {
     args := TaskRequestArgs{WorkerId: w.id}
     reply := TaskRequestReply{}
 
-    if err := call("Coordinator.RequestTask", &args, &reply); err != nil {
+    if err := call("Master.RequestTask", &args, &reply); err != nil {
         return nil, fmt.Errorf("RPC RequestTask error: %v", err)
     }
 
@@ -93,7 +93,7 @@ func (w *worker) notifyTaskComplete(task *TaskRequestReply) error {
     }
 
     reply := TaskCompletionReply{}
-    if err := call("Coordinator.NotifyComplete", &args, &reply); err != nil {
+    if err := call("Master.NotifyComplete", &args, &reply); err != nil {
         return fmt.Errorf("RPC NotifyComplete error: %v", err)
     }
 
@@ -215,9 +215,9 @@ func ihash(key string) int {
     return int(h.Sum32() & 0x7fffffff)
 }
 
-// call sends an RPC request to the coordinator
+// call sends an RPC request to the master
 func call(rpcname string, args interface{}, reply interface{}) error {
-    sockname := coordinatorSock()
+    sockname := masterSock()
     c, err := rpc.DialHTTP("unix", sockname)
     if err != nil {
         return err

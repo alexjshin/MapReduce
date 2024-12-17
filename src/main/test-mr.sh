@@ -69,7 +69,7 @@ rm -f mr-*
 (cd ../../mrapps && go build $RACE -buildmode=plugin crash.go) || exit 1
 (cd ../../mrapps && go build $RACE -buildmode=plugin nocrash.go) || exit 1
 (cd ../../mrapps && go build $RACE -buildmode=plugin grep.go) || exit 1
-(cd .. && go build $RACE mrcoordinator.go) || exit 1
+(cd .. && go build $RACE mrmaster.go) || exit 1
 (cd .. && go build $RACE mrworker.go) || exit 1
 (cd .. && go build $RACE mrsequential.go) || exit 1
 
@@ -85,10 +85,10 @@ rm -f mr-out*
 
 echo '***' Starting wc test.
 
-maybe_quiet $TIMEOUT ../mrcoordinator ../pg*txt &
+maybe_quiet $TIMEOUT ../mrmaster ../pg*txt &
 pid=$!
 
-# give the coordinator time to create the sockets.
+# give the master time to create the sockets.
 sleep 1
 
 # start multiple workers.
@@ -96,7 +96,7 @@ sleep 1
 (maybe_quiet $TIMEOUT ../mrworker ../../mrapps/wc.so) &
 (maybe_quiet $TIMEOUT ../mrworker ../../mrapps/wc.so) &
 
-# wait for the coordinator to exit.
+# wait for the master to exit.
 wait $pid
 
 # since workers are required to exit when a job is completely finished,
@@ -111,7 +111,7 @@ else
   failed_any=1
 fi
 
-# wait for remaining workers and coordinator to exit.
+# wait for remaining workers and master to exit.
 wait
 
 #########################################################
@@ -125,7 +125,7 @@ rm -f mr-out*
 
 echo '***' Starting indexer test.
 
-maybe_quiet $TIMEOUT ../mrcoordinator ../pg*txt &
+maybe_quiet $TIMEOUT ../mrmaster ../pg*txt &
 sleep 1
 
 # start multiple workers
@@ -149,7 +149,7 @@ echo '***' Starting map parallelism test.
 
 rm -f mr-*
 
-maybe_quiet $TIMEOUT ../mrcoordinator ../pg*txt &
+maybe_quiet $TIMEOUT ../mrmaster ../pg*txt &
 sleep 1
 
 maybe_quiet $TIMEOUT ../mrworker ../../mrapps/mtiming.so &
@@ -180,7 +180,7 @@ echo '***' Starting reduce parallelism test.
 
 rm -f mr-*
 
-maybe_quiet $TIMEOUT ../mrcoordinator ../pg*txt &
+maybe_quiet $TIMEOUT ../mrmaster ../pg*txt &
 sleep 1
 
 maybe_quiet $TIMEOUT ../mrworker ../../mrapps/rtiming.so  &
@@ -203,7 +203,7 @@ echo '***' Starting job count test.
 
 rm -f mr-*
 
-maybe_quiet $TIMEOUT ../mrcoordinator ../pg*txt  &
+maybe_quiet $TIMEOUT ../mrmaster ../pg*txt  &
 sleep 1
 
 maybe_quiet $TIMEOUT ../mrworker ../../mrapps/jobcount.so &
@@ -224,7 +224,7 @@ fi
 wait
 
 #########################################################
-# test whether any worker or coordinator exits before the
+# test whether any worker or master exits before the
 # task has completed (i.e., all output files have been finalized)
 rm -f mr-*
 
@@ -233,9 +233,9 @@ echo '***' Starting early exit test.
 DF=anydone$$
 rm -f $DF
 
-(maybe_quiet $TIMEOUT ../mrcoordinator ../pg*txt; touch $DF) &
+(maybe_quiet $TIMEOUT ../mrmaster ../pg*txt; touch $DF) &
 
-# give the coordinator time to create the sockets.
+# give the master time to create the sockets.
 sleep 1
 
 # start multiple workers.
@@ -263,10 +263,10 @@ fi
 rm -f $DF
 
 # a process has exited. this means that the output should be finalized
-# otherwise, either a worker or the coordinator exited early
+# otherwise, either a worker or the master exited early
 sort mr-out* | grep . > mr-wc-all-initial
 
-# wait for remaining workers and coordinator to exit.
+# wait for remaining workers and master to exit.
 wait
 
 # compare initial and final outputs
@@ -290,13 +290,13 @@ sort mr-out-0 > mr-correct-crash.txt
 rm -f mr-out*
 
 rm -f mr-done
-((maybe_quiet $TIMEOUT2 ../mrcoordinator ../pg*txt); touch mr-done ) &
+((maybe_quiet $TIMEOUT2 ../mrmaster ../pg*txt); touch mr-done ) &
 sleep 1
 
 # start multiple workers
 maybe_quiet $TIMEOUT2 ../mrworker ../../mrapps/crash.so &
 
-# mimic rpc.go's coordinatorSock()
+# mimic rpc.go's masterSock()
 SOCKNAME=/var/tmp/5840-mr-`id -u`
 
 ( while [ -e $SOCKNAME -a ! -f mr-done ]
@@ -340,8 +340,8 @@ rm -f mr-*
 sort mr-out-0 > mr-correct-grep.txt
 rm -f mr-out*
 
-# Start coordinator
-maybe_quiet $TIMEOUT ../mrcoordinator ../pg*txt &
+# Start master
+maybe_quiet $TIMEOUT ../mrmaster ../pg*txt &
 sleep 1
 
 # Start multiple workers
