@@ -120,6 +120,7 @@ A text search application that finds lines containing a specified keyword. (defa
 #### 4. Running Unittests/Verification Applications
 
 In addition to 3 production-style applications, we have 6 testing/verification applications: mtiming.go (map parallelism), rtiming.go (reduce parallelism), jobcount.go (task assignment), crash.go (fault tolerance), nocrash.go (fault tolerance baseline), early_exit.go (worker behavior).
+
 We have provided a bash script, that 1) runs these testing applications and 2) performs unittests for our MapReduce implemention by comparing our output to the correct output of `wc.go`, `indexer.go`, and `grep.go` (correct output is from the provided sequential MapReduce implementation from the MIT source code).
 
 To run the bash script, make sure you are in the `src/main` directory and run:
@@ -127,3 +128,13 @@ To run the bash script, make sure you are in the `src/main` directory and run:
 `bash ./test-mr.sh`
 
 ---
+
+### MapReduce Demonstration/Screenshots
+
+### Group Work
+
+#### Team Member Contributions:
+
+**Alex Shin**:
+
+**Mati Hassan**:
