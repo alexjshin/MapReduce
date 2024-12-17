@@ -42,7 +42,7 @@ src/
 Running our different MapReduce Applications. First make sure you are in the `~/src/main` directory: `cd ~/src/main`
 We have provided 11 different books as pg-\*.txt files following the structure to model large input files. We have also provided 3 production style applications: wc.go (word count), indexer.go (document indexing), grep.go (text search).
 
-#### 1. ==WordCount Application (wc.go)==
+#### 1. WordCount Application (wc.go)
 
 A word count application that splits text into words and counts their occurrences.
 
@@ -65,7 +65,7 @@ A word count application that splits text into words and counts their occurrence
 
 ---
 
-#### 2. ==Document Indexing Application (indexer.go)== 
+#### 2. Document Indexing Application (indexer.go) 
 
 An indexing application that creates an index of words and their document locations
 
@@ -88,7 +88,7 @@ An indexing application that creates an index of words and their document locati
 
 ---
 
-#### 3. ==Grep Application (grep.go)==
+#### 3. Grep Application (grep.go)
 
 A text search application that finds lines containing a specified keyword. (default keyword set to **"world"**)
 
@@ -117,7 +117,7 @@ A text search application that finds lines containing a specified keyword. (defa
 
 ---
 
-#### 4. ==Running Unittests/Verification Applications==
+#### 4. Running Unittests/Verification Applications
 
 In addition to 3 production-style applications, we have 6 testing/verification applications: mtiming.go (map parallelism), rtiming.go (reduce parallelism), jobcount.go (task assignment), crash.go (fault tolerance), nocrash.go (fault tolerance baseline), early_exit.go (worker behavior).
 We have provided a bash script, that 1) runs these testing applications and 2) performs unittests for our MapReduce implemention by comparing our output to the correct output of `wc.go`, `indexer.go`, and `grep.go` (correct output is from the provided sequential MapReduce implementation from the MIT source code).
