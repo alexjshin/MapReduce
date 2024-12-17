@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -12,9 +14,12 @@ var keyword string
 
 func init() {
 	// Use a default keyword if none is provided at build time.
+	keyword = os.Getenv("GREP_KEYWORD")
 	if keyword == "" {
-		keyword = "default"
+		// Default keyword.
+		keyword = "world"
 	}
+	fmt.Printf("Keyword: %s\n", keyword)
 }
 
 // The map function processes the file and tracks file name and line number.

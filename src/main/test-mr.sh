@@ -68,6 +68,7 @@ rm -f mr-*
 (cd ../../mrapps && go build $RACE -buildmode=plugin early_exit.go) || exit 1
 (cd ../../mrapps && go build $RACE -buildmode=plugin crash.go) || exit 1
 (cd ../../mrapps && go build $RACE -buildmode=plugin nocrash.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin grep.go) || exit 1
 (cd .. && go build $RACE mrcoordinator.go) || exit 1
 (cd .. && go build $RACE mrworker.go) || exit 1
 (cd .. && go build $RACE mrsequential.go) || exit 1
@@ -326,6 +327,38 @@ then
 else
   echo '---' crash output is not the same as mr-correct-crash.txt
   echo '---' crash test: FAIL
+  failed_any=1
+fi
+
+#########################################################
+echo '***' Starting grep test.
+
+rm -f mr-*
+
+# Generate the correct output using sequential version
+../mrsequential ../../mrapps/grep.so ../pg*txt || exit 1
+sort mr-out-0 > mr-correct-grep.txt
+rm -f mr-out*
+
+# Start coordinator
+maybe_quiet $TIMEOUT ../mrcoordinator ../pg*txt &
+sleep 1
+
+# Start multiple workers
+maybe_quiet $TIMEOUT ../mrworker ../../mrapps/grep.so &
+maybe_quiet $TIMEOUT ../mrworker ../../mrapps/grep.so &
+maybe_quiet $TIMEOUT ../mrworker ../../mrapps/grep.so &
+
+wait
+
+# Compare outputs
+sort mr-out* | grep . > mr-grep-all
+if cmp mr-grep-all mr-correct-grep.txt
+then
+  echo '---' grep test: PASS
+else
+  echo '---' grep output is not the same as mr-correct-grep.txt
+  echo '---' grep test: FAIL
   failed_any=1
 fi
 
