@@ -132,9 +132,9 @@ To run the bash script, make sure you are in the `src/main` directory and run:
 ### MapReduce Demonstration/Screenshots
 
 <img src="screenshots/test_script.png" alt="Test Script" width="50%"/>
-<img src="screenshots/wordcount.png" alt="Wordcount" width="50%"/>
-<img src="screenshots/grep1.png" alt="Grep Commands" width="50%"/>
-<img src="screenshots/grep2.png" alt="Grep Output" width="50%"/>
+<img src="screenshots/wordcount.png" alt="Wordcount" width="100%"/>
+<img src="screenshots/grep1.png" alt="Grep Commands" width="100%"/>
+<img src="screenshots/grep2.png" alt="Grep Output" width="90%"/>
 
 ### Group Work
 
