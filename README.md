@@ -146,10 +146,10 @@ To run the bash script, make sure you are in the `src/main` directory and run:
 #### Team Member Contributions:
 
 **Alex Shin**:
-Alex focused mostly on the Master node, designing and coding the frameworks for job coordination, task scheduling, and failure handling.
+Though both team members worked together at each step of the project, Alex focused mostly on the Master node, designing and coding the frameworks for job coordination, task scheduling, and failure handling.
 
 **Mati Hassan**:
-Mati focused mostly on the Worker nodes and the data management aspects of the project, coding the Map and Reduce tasks, data chunking, and managing intermediate storage.
+Again, though both team members worked together at each step of the project, Mati focused mostly on the Worker nodes and the data management aspects, coding the Map and Reduce tasks, data chunking, and managing intermediate storage.
 
-#### Collaboration:
-Both worked closely on integrating the components and creating the RPC interfaces for communication between Master and Worker nodes. They also created example jobs to test the framework, coded a distributed grep application, and developed tests together to ensure correctness.
+**Collaboration**:
+Both worked closely on integrating the components and creating the RPC interfaces and data structures for communication between Master and Worker nodes. They also created example jobs to test the frameworks, coded a distributed grep application, and developed unit tests together to ensure correctness.
