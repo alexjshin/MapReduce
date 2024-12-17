@@ -48,6 +48,7 @@ A word count application that splits text into words and counts their occurrence
 
 1. Build the wc.go plugin:
    `go build -buildmode=plugin ../mrapps/wc.go`
+
    This compiles the word count (wc.go) program into a shared object (.so) file that can be dynamically loaded at runtime by our MapReduce system.
 
 2. Clean up any previous output:
@@ -68,10 +69,10 @@ An indexing application that creates an index of words and their document locati
 
 1. Build the indexer.go plugin:
    `go build -buildmode=plugin ../mrapps/indexer.go`
-   This compiles the indexer.go program into a shared object (.so) file that can be dynamically loaded at runtime by our MapReduce system.
 
 2. Clean up any previous output:
    `rm mr-out*`
+
    To clean up intermediate files as well: `rm mr-*`
 
 3. Run the Master node program:
@@ -89,14 +90,16 @@ A text search application that finds lines containing a specified keyword. (defa
 
 1. Build the indexer.go plugin:
    `go build -buildmode=plugin ../mrapps/indexer.go`
-   This compiles the grep.go program into a shared object (.so) file that can be dynamically loaded at runtime by our MapReduce system.
 
 2. Set the keyword by setting the enviroment variable `GREP_KEYWORD`.
+
    `export GREP_KEYWORD="{your keyword here}"`
+
    Check if keyword was set with: `echo $GREP_KEYWORD`.
 
 3. Clean up any previous output:
    `rm mr-out*`
+
    To clean up intermediate files as well: `rm mr-*`
 
 4. Run the Master node program:
@@ -110,7 +113,7 @@ A text search application that finds lines containing a specified keyword. (defa
 
 #### 4. Running Unittests/Verification Applications
 
-In addition to 3 Production-style applications, we have 6 testing/verification applications: mtiming.go (map parallelism), rtiming.go (reduce parallelism), jobcount.go (task assignment), crash.go (fault tolerance), nocrash.go (fault tolerance baseline), early_exit.go (worker behavior).
+In addition to 3 production-style applications, we have 6 testing/verification applications: mtiming.go (map parallelism), rtiming.go (reduce parallelism), jobcount.go (task assignment), crash.go (fault tolerance), nocrash.go (fault tolerance baseline), early_exit.go (worker behavior).
 We have provided a bash script, that 1) runs these testing applications and 2) performs unittests for our MapReduce implemention by comparing the output of `wc.go`, `indexer.go`, and `grep.go`
 
 ---
