@@ -92,14 +92,14 @@ An indexing application that creates an index of words and their document locati
 
 A text search application that finds lines containing a specified keyword. (default keyword set to **"world"**)
 
-1. Build the indexer.go plugin:
-   `go build -buildmode=plugin ../mrapps/indexer.go`
-
-2. Set the keyword by setting the enviroment variable `GREP_KEYWORD`.
+1. Set the keyword by setting the enviroment variable `GREP_KEYWORD`.
 
    `export GREP_KEYWORD="{your keyword here}"`
 
    Check if keyword was set with: `echo $GREP_KEYWORD`.
+
+2. Build the indexer.go plugin:
+   `go build -buildmode=plugin ../mrapps/grep.go`
 
 3. Clean up any previous output:
    `rm mr-out*`
