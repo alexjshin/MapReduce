@@ -130,6 +130,10 @@ To run the bash script, make sure you are in the `src/main` directory and run:
 ---
 
 ### MapReduce Demonstration/Screenshots
+![Test Script](test_script.png)
+![Wordcount](wordcount.png)
+![Grep Commands](grep1.png)
+![Grep Output](grep2.png)
 
 ### Group Work
 
