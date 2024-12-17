@@ -222,6 +222,7 @@ func MakeMaster(files []string, nReduce int) *Master {
 
 	// Initialize map tasks
     for i, file := range files {
+        fmt.Printf("File name is %v\n", file)
         c.mapTasks[i] = MapTask{
             FileName: file,
             NReduce:  nReduce,
