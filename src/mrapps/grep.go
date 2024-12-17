@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"6.5840/mr"
+	"finalproj/mr"
 )
 
 // Compile-time keyword variable.

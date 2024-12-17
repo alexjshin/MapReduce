@@ -1,4 +1,4 @@
-module 6.5840
+module finalproj
 
 go 1.15
 
